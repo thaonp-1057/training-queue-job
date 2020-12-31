@@ -8,6 +8,8 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use PhpParser\Node\Stmt\TryCatch;
+use Exception;
 
 class HandleSchedules extends Command
 {
@@ -46,26 +48,32 @@ class HandleSchedules extends Command
         $schedules = Schedule::where('start_time', $time)->get();
         $users = User::all();
         foreach ($schedules as $schedule) {
-            DB::transaction(function () use ($schedule, $users) {
-                // $sendingTime = $schedule->start_time;
-                // $scheduleId = $schedule->id;
-                $schedule->update([
-                    'mail_waiting'=> $users->count(),
-                ]);
-
-                $data = array();
-
-                foreach ($users as $user) {
-                    array_push($data, [
-                        'schedule_id' => $schedule->id,
-                        'user_id' => $user->id,
-                        'status' => config('status.schedule_user.waiting'),
-                        'sending_time' => $schedule->start_time,
+            try {
+                DB::transaction(function () use ($schedule, $users) {
+                    $schedule->update([
+                        'mail_waiting'=> $users->count(),
                     ]);
-                }
 
-                DB::table('schedule_user')->insert($data);
-            });
+                    try {
+                        foreach ($users->chunk(5000) as $chunk) {
+                            $data = [];
+                            foreach ($chunk as $user) {
+                                array_push($data, [
+                                    'schedule_id' => $schedule->id,
+                                    'user_id' => $user->id,
+                                    'status' => config('status.schedule_user.waiting'),
+                                    'sending_time' => $schedule->start_time,
+                                ]);
+                            }
+                            DB::table('schedule_user')->insert($data);
+                        }
+                    } catch (Exception $e) {
+                        echo 'Caught exception insert: ',  $e->getMessage(), "\n";
+                    }
+                });
+            } catch (Exception $e) {
+                echo 'Caught exception: ',  $e->getMessage(), "\n";
+            }
         }
     }
 }
