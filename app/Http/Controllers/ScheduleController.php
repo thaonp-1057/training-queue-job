@@ -16,7 +16,9 @@ class ScheduleController extends Controller
      */
     public function index()
     {
-        //
+        $schedules = Schedule::all();
+
+        return view('schedules.list_schedule', compact('schedules'));
     }
 
     /**
@@ -64,7 +66,9 @@ class ScheduleController extends Controller
      */
     public function show($id)
     {
-        //
+        $schedule = Schedule::find($id)->load('scheduleUsers.user');
+
+        return view('schedules.detail_schedule', compact('schedule'));
     }
 
     /**
