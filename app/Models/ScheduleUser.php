@@ -18,4 +18,9 @@ class ScheduleUser extends Model
         'sender',
         'schedule_id',
     ];
+
+    public function schedule()
+    {
+        return $this->belongsToMany(Schedule::class);
+    }
 }

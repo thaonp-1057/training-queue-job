@@ -11,6 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Throwable;
+use Carbon\Carbon;
 
 class HandleSendMail implements ShouldQueue
 {
@@ -46,11 +47,13 @@ class HandleSendMail implements ShouldQueue
     {
         // tạo điều kiện để job failed và success
         if ($this->userId % 2 == 0) {
+            $timeCurrent = Carbon::now()->format('Y-m-d H:i');
             ScheduleUser::where([
                 'schedule_id' => $this->scheduleId,
                 'user_id' => $this->userId,
             ])->update([
                 'status' => config('status.schedule_user.success'),
+                'sending_time' => $timeCurrent,
             ]);
         } else {
             throw new Exception();
@@ -59,11 +62,13 @@ class HandleSendMail implements ShouldQueue
 
     public function failed(Throwable $exception)
     {
+        $timeCurrent = Carbon::now()->format('Y-m-d H:i');
         ScheduleUser::where([
             'schedule_id' => $this->scheduleId,
             'user_id' => $this->userId,
         ])->update([
             'status' => config('status.schedule_user.failed'),
+            'sending_time' => $timeCurrent,
         ]);
     }
 }
